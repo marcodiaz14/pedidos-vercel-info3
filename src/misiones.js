@@ -192,5 +192,56 @@ export function buscarPedidos(pedidos, texto) {
 // Orden: total de mayor a menor; si empatan, por nombre alfabético.
 // Pista: un objeto acumulador, luego Object.entries, map y sort.
 export function topClientes(pedidos, n) {
+  if (!Array.isArray(pedidos) || n <= 0) {
+    return [];
+  }
+
+  // 1. Acumular el gasto total por cada cliente
+  const acumulador = {};
+
+  for (const pedido of pedidos) {
+    if (!pedido) continue;
+
+    // Extraer el nombre del cliente de forma segura (objeto o string)
+    let nombreCliente = '';
+    if (typeof pedido.cliente === 'string') {
+      nombreCliente = pedido.cliente.trim();
+    } else if (pedido.cliente && typeof pedido.cliente.nombre === 'string') {
+      nombreCliente = pedido.cliente.nombre.trim();
+    }
+
+    if (!nombreCliente) continue;
+
+    // Reutilizamos totalPedido para calcular el importe del pedido actual
+    const gastoPedido = totalPedido(pedido);
+
+    // Sumar al acumulador del cliente
+    if (!acumulador[nombreCliente]) {
+      acumulador[nombreCliente] = 0;
+    }
+    acumulador[nombreCliente] += gastoPedido;
+  }
+
+  // 2. Convertir el objeto acumulador a un arreglo de objetos [{ cliente, total }]
+  const listaClientes = Object.entries(acumulador).map(([cliente, total]) => {
+    // Redondeamos el total acumulado por seguridad con los decimales
+    return {
+      cliente,
+      total: Math.round(total * 100) / 100
+    };
+  });
+
+  // 3. Ordenar: de mayor a menor total; si empatan, alfabéticamente por nombre
+  listaClientes.sort((a, b) => {
+    if (b.total !== a.total) {
+      return b.total - a.total; // Mayor a menor
+    }
+    // Si hay empate en el total, orden alfabético ascendente
+    return a.cliente.localeCompare(b.cliente, 'es', { sensitivity: 'base' });
+  });
+
+  // 4. Devolver únicamente los primeros `n` clientes
+  return listaClientes.slice(0, n);
+
   return [] // TODO
 }
